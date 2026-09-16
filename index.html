@@ -1,0 +1,1268 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bookmarks</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20,400,0,0">
+  <style>
+    :root {
+      color-scheme: light;
+      --canvas: #f3f3f3;
+      --surface: #fff;
+      --surface-hover: #e8e8e8;
+      --avatar-surface: #fff;
+      --border: #0000000d;
+      --border-strong: #00000014;
+      --primary: #0d0d0d;
+      --secondary-text: #5d5d5d;
+      --tertiary-text: #8f8f8f;
+      --danger: #e02020;
+      --accent-hover: #303030;
+      --on-accent: #fff;
+      --overlay: #00000040;
+      --shadow: 0 12px 36px #00000012;
+    }
+    
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --canvas: #212121;
+      --surface: #303030;
+      --surface-hover: #414141;
+      --avatar-surface: #212121;
+      --border: #ffffff14;
+      --border-strong: #ffffff1f;
+      --primary: #fff;
+      --secondary-text: #cdcdcd;
+      --tertiary-text: #afafaf;
+      --danger: #ff6767;
+      --accent-hover: #e8e8e8;
+      --on-accent: #0d0d0d;
+      --shadow: 0 16px 44px #0006;
+    }
+    
+    * { box-sizing: border-box; }
+    
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+    }
+    
+    body {
+      margin: 0;
+      background: var(--canvas);
+      color: var(--primary);
+      font-family: Inter, "Noto Sans CJK SC", "PingFang SC", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    button,
+    input,
+    textarea { font: inherit; }
+    
+    button { -webkit-tap-highlight-color: transparent; }
+    
+    button:focus-visible,
+    a:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+    
+    .material-symbols-rounded {
+      display: inline-block;
+      font-family: "Material Symbols Rounded";
+      font-size: 18px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      white-space: nowrap;
+      direction: ltr;
+      font-feature-settings: "liga";
+      -webkit-font-feature-settings: "liga";
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    /* Layout */
+    .page {
+      width: min(640px, calc(100% - 48px));
+      height: 100dvh;
+      min-height: 0;
+      margin: auto;
+      padding: 24px 0;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .view-header {
+      flex: none;
+      padding: 0 24px 16px;
+    }
+    
+    .view-title {
+      margin: 0;
+      color: var(--primary);
+      font-size: 20px;
+      font-weight: 500;
+      line-height: 1.2;
+      letter-spacing: -.025em;
+    }
+    
+    .library-panel {
+      position: relative;
+      min-height: 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 0 16px 16px;
+      border: 1px solid var(--border);
+      border-radius: 34px;
+      background: var(--surface);
+      box-shadow: 0 1px 2px #00000008;
+    }
+    
+    /* Filters */
+    .filters {
+      width: calc(100% + 32px);
+      margin: 0 -16px;
+      padding: 16px;
+      display: flex;
+      flex: none;
+      gap: 4px;
+      overflow-x: auto;
+      border-bottom: 1px solid transparent;
+      background: var(--surface);
+      scrollbar-width: none;
+      -webkit-mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+      mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+    }
+    
+    .filters::-webkit-scrollbar,
+    .list::-webkit-scrollbar { display: none; }
+    
+    .filters.list-scrolled { border-bottom-color: var(--border); }
+    
+    .chip {
+      height: 28px;
+      flex: none;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--secondary-text);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 400;
+    }
+    
+    .chip:hover,
+    .chip.active {
+      background: var(--canvas);
+      color: var(--primary);
+    }
+    
+    .chip-count {
+      margin-left: 3px;
+      color: var(--tertiary-text);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+    
+    /* Bookmark list */
+    .list {
+      min-height: 0;
+      flex: 1;
+      padding: 0 0 148px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      border-radius: 0 0 18px 18px;
+      scrollbar-width: none;
+      -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 24px), transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 24px), transparent 100%);
+    }
+    
+    .item {
+      position: relative;
+      width: 100%;
+      min-height: 72px;
+      flex-shrink: 0;
+      padding: 14px 52px 14px 14px;
+      display: grid;
+      grid-template-columns: 32px minmax(0, 1fr);
+      column-gap: 12px;
+      align-items: start;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--canvas);
+      transition: background-color .15s, border-color .15s;
+    }
+    
+    .item:hover,
+    .item:focus-within {
+      border-color: var(--border-strong);
+      background: var(--surface-hover);
+    }
+    
+    .site-avatar {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      background: var(--avatar-surface);
+      color: var(--tertiary-text);
+    }
+    
+    .site-avatar > .material-symbols-rounded { font-size: 17px; }
+    
+    .site-avatar img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      padding: 5px;
+      object-fit: contain;
+      background: var(--avatar-surface);
+    }
+    
+    .item-body {
+      min-width: 0;
+      padding-top: 1px;
+    }
+    
+    .item h2 {
+      margin: 0 0 5px;
+      overflow: hidden;
+      color: var(--primary);
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.35;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .item h2 a {
+      color: inherit;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .item h2 a:hover {
+      text-decoration: underline;
+      text-decoration-thickness: 1.5px;
+    }
+    
+    .description {
+      margin: 0;
+      display: -webkit-box;
+      overflow: hidden;
+      color: var(--secondary-text);
+      font-size: 12px;
+      line-height: 1.45;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+    
+    .empty {
+      padding: 48px 0;
+      color: var(--tertiary-text);
+      text-align: center;
+      font-size: 14px;
+    }
+    
+    /* Item and panel menus */
+    .item-actions {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      z-index: 2;
+      opacity: 0;
+    }
+    
+    .item:hover .item-actions,
+    .item:focus-within .item-actions { opacity: 1; }
+    
+    .menu-trigger {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--secondary-text);
+      cursor: pointer;
+    }
+    
+    .menu-trigger:hover {
+      background: var(--surface-hover);
+      color: var(--primary);
+    }
+    
+    .item-menu {
+      position: absolute;
+      right: 12px;
+      top: 46px;
+      z-index: 20;
+      width: 150px;
+      padding: 6px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--surface);
+      color: var(--primary);
+      box-shadow: var(--shadow);
+    }
+    
+    .item-menu button {
+      width: 100%;
+      height: 38px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .item-menu button:hover,
+    .item-menu button[aria-pressed="true"] { background: var(--canvas); }
+    .item-menu .danger { color: var(--danger); }
+    .item-menu .separator { height: 1px; margin: 5px 8px; background: var(--border); }
+    
+    .panel-actions {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .panel-round {
+      position: relative;
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      background: var(--surface);
+      color: var(--secondary-text);
+      cursor: pointer;
+    }
+    
+    .panel-round:hover,
+    .panel-round[aria-expanded="true"] {
+      border-color: var(--border-strong);
+      background: var(--canvas);
+      color: var(--primary);
+    }
+    
+    .theme-toggle .material-symbols-rounded { font-size: 17px; }
+    
+    .panel-add {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: var(--on-accent);
+    }
+    
+    .panel-add:hover {
+      border-color: var(--accent-hover);
+      background: var(--accent-hover);
+      color: var(--on-accent);
+    }
+    
+    .panel-menu {
+      right: 44px;
+      top: auto;
+      bottom: 44px;
+      width: 168px;
+    }
+    
+    .panel-menu[hidden] { display: none; }
+    .panel-menu .material-symbols-rounded { color: var(--secondary-text); font-size: 18px; }
+    
+    /* Search */
+    .search-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: none;
+      padding: 96px 32px 32px;
+      background: var(--overlay);
+      backdrop-filter: blur(4px);
+    }
+    
+    .search-layer.open { display: block; }
+    
+    .search-panel {
+      width: min(560px, 100%);
+      margin: auto;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    
+    .search-row {
+      height: 60px;
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .search-row > .material-symbols-rounded {
+      flex: none;
+      color: var(--secondary-text);
+      font-size: 20px;
+    }
+    
+    .search-row input {
+      min-width: 0;
+      flex: 1;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--primary);
+      font-size: 14px;
+    }
+    
+    .search-row input::placeholder { color: var(--tertiary-text); }
+    input[type="search"] { appearance: none; -webkit-appearance: none; }
+    input[type="search"]::-webkit-search-cancel-button { display: none; appearance: none; -webkit-appearance: none; }
+    input[type="search"]::-ms-clear { display: none; }
+    
+    .search-close,
+    .close {
+      width: 32px;
+      height: 32px;
+      flex: none;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--secondary-text);
+      cursor: pointer;
+    }
+    
+    .search-close:hover,
+    .close:hover { background: var(--surface-hover); color: var(--primary); }
+    .search-close .material-symbols-rounded,
+    .close .material-symbols-rounded { font-size: 18px; }
+    
+    .suggestions { padding: 16px 18px 18px; }
+    .suggestions-label { display: block; margin-bottom: 10px; color: var(--tertiary-text); font-size: 12px; }
+    
+    .suggestions button {
+      height: 28px;
+      margin: 0 6px 6px 0;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--secondary-text);
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .suggestions button:hover { background: var(--surface-hover); color: var(--primary); }
+    
+    /* Add and edit dialog */
+    dialog {
+      width: min(480px, calc(100% - 64px));
+      max-height: calc(100dvh - 32px);
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--surface);
+      color: var(--primary);
+      box-shadow: var(--shadow);
+    }
+    
+    dialog::backdrop {
+      background: var(--overlay);
+      backdrop-filter: blur(4px);
+    }
+    
+    .modal {
+      max-height: calc(100dvh - 32px);
+      overflow-y: auto;
+      padding: 24px;
+    }
+    
+    .modal-head {
+      margin-bottom: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .modal h2 {
+      margin: 0;
+      color: var(--primary);
+      font-size: 20px;
+      font-weight: 500;
+      letter-spacing: -.02em;
+    }
+    
+    .field { margin-bottom: 16px; }
+    
+    .field label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .field input,
+    .field textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      outline: 0;
+      background: var(--surface);
+      color: var(--primary);
+      caret-color: var(--primary);
+      font-size: 14px;
+      font-weight: 400;
+    }
+    
+    .field input { height: 40px; padding-block: 0; }
+    .field textarea { min-height: 88px; resize: vertical; }
+    .field input::placeholder,
+    .field textarea::placeholder { color: var(--tertiary-text); opacity: 1; }
+    .field input:hover,
+    .field textarea:hover { border-color: var(--border); }
+    .field input:focus,
+    .field textarea:focus { border-color: var(--border-strong); box-shadow: none; }
+    
+    .hint { margin-top: 5px; color: var(--tertiary-text); font-size: 12px; }
+    
+    .form-actions {
+      margin-top: 24px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    
+    .form-actions button {
+      height: 36px;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .form-actions .cancel { background: transparent; color: var(--secondary-text); }
+    .form-actions .cancel:hover { background: var(--surface-hover); color: var(--primary); }
+    .form-actions .save { background: var(--primary); color: var(--on-accent); }
+    .form-actions .save:hover { background: var(--accent-hover); }
+    
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      z-index: 60;
+      padding: 9px 13px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      color: var(--primary);
+      box-shadow: var(--shadow);
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 12px);
+      transition: opacity .2s, transform .2s;
+    }
+    
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    
+    @media (max-width: 650px) {
+      .search-layer { padding: 84px 16px 16px; }
+      .search-row input,
+      .field input,
+      .field textarea { font-size: 16px; }
+      dialog { width: calc(100% - 32px); }
+      .modal { padding: 20px; }
+      .form-actions {
+        position: sticky;
+        bottom: -20px;
+        padding-top: 12px;
+        background: var(--surface);
+      }
+      .form-actions button { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="search-layer" id="searchPanel" role="dialog" aria-modal="true" aria-label="Search bookmarks">
+    <div class="search-panel">
+      <div class="search-row">
+        <span class="material-symbols-rounded" aria-hidden="true">search</span>
+        <input id="search" type="search" placeholder="Start searching" aria-label="Search bookmarks">
+        <button class="search-close" id="searchClose" aria-label="Close search">
+          <span class="material-symbols-rounded" aria-hidden="true">close</span>
+        </button>
+      </div>
+      <div class="suggestions">
+        <span class="suggestions-label">Suggested</span>
+        <button data-suggest="Design">Design</button>
+        <button data-suggest="Inspiration">Inspiration</button>
+        <button data-suggest="Magazine">Magazine</button>
+        <button data-suggest="Website">Website</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="page">
+    <header class="view-header">
+      <h1 class="view-title" id="viewTitle">Bookmarks</h1>
+    </header>
+
+    <div class="library-panel">
+      <nav class="filters" id="filters" aria-label="Filter by tag"></nav>
+      <section class="list" id="list" aria-live="polite"></section>
+
+      <div class="panel-actions">
+        <button class="panel-round theme-toggle" id="themeBtn" aria-label="Switch to dark mode" aria-pressed="false">
+          <span class="material-symbols-rounded" aria-hidden="true">dark_mode</span>
+        </button>
+        <button class="panel-round" id="navMoreBtn" aria-label="More actions" aria-expanded="false">
+          <span class="material-symbols-rounded" aria-hidden="true">more_horiz</span>
+        </button>
+
+        <div class="item-menu panel-menu" id="navMoreMenu" hidden>
+          <button id="searchBtn"><span class="material-symbols-rounded" aria-hidden="true">search</span>Search</button>
+          <button id="homeNavBtn" aria-pressed="true"><span class="material-symbols-rounded" aria-hidden="true">home</span>Home</button>
+          <button id="importBtn"><span class="material-symbols-rounded" aria-hidden="true">file_upload</span>Import</button>
+          <button id="exportBtn"><span class="material-symbols-rounded" aria-hidden="true">download</span>Backup</button>
+          <button id="archiveBtn" aria-pressed="false"><span class="material-symbols-rounded" aria-hidden="true">archive</span>Archive</button>
+        </div>
+
+        <button class="panel-round panel-add" id="addBtn" aria-label="Add bookmark">
+          <span class="material-symbols-rounded" aria-hidden="true">add</span>
+        </button>
+        <input id="importFile" type="file" accept="application/json,.json" hidden>
+      </div>
+    </div>
+  </main>
+
+  <dialog id="dialog">
+    <form class="modal" id="form" novalidate>
+      <div class="modal-head">
+        <h2 id="modalTitle">Add bookmark</h2>
+        <button class="close" id="closeBtn" type="button" aria-label="Close">
+          <span class="material-symbols-rounded" aria-hidden="true">close</span>
+        </button>
+      </div>
+      <input id="editId" type="hidden">
+      <div class="field">
+        <label for="url">Website URL</label>
+        <input id="url" type="text" inputmode="url" required placeholder="https://example.com">
+      </div>
+      <div class="field">
+        <label for="title">Website name</label>
+        <input id="title" required maxlength="80" placeholder="e.g. Are.na">
+      </div>
+      <div class="field">
+        <label for="description">Description</label>
+        <textarea id="description" maxlength="240" placeholder="Why is it worth saving?"></textarea>
+      </div>
+      <div class="field">
+        <label for="tags">Tags</label>
+        <input id="tags" placeholder="Design, Magazine, Aesthetics">
+        <div class="hint">Separate multiple tags with commas</div>
+      </div>
+      <div class="form-actions">
+        <button class="cancel" id="cancelBtn" type="button">Cancel</button>
+        <button class="save" type="submit">Save</button>
+      </div>
+    </form>
+  </dialog>
+  <div class="toast" id="toast" role="status"></div>
+  <script>
+    const STORAGE_KEY = "found-bookmarks-v1";
+    const THEME_KEY = "found-bookmarks-theme";
+    
+    const sampleBookmarks = [
+      {
+        id: "s1",
+        title: "ChatGPT",
+        url: "https://chatgpt.com",
+        description: "An AI assistant for writing, learning, research, coding, and everyday problem solving.",
+        tags: ["AI", "Tools"],
+      },
+      {
+        id: "s2",
+        title: "Claude AI",
+        url: "https://claude.ai",
+        description: "An AI assistant by Anthropic for thoughtful conversation, analysis, and creative work.",
+        tags: ["AI", "Tools"],
+      },
+      {
+        id: "s3",
+        title: "Google Fonts",
+        url: "https://fonts.google.com",
+        description: "An open library for discovering, testing, and using typefaces across digital products.",
+        tags: ["Design", "Typography"],
+      },
+      {
+        id: "s4",
+        title: "iPhone Duo Design",
+        url: "https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo",
+        description: "Apple’s official guidance for creating adaptive, intuitive experiences for iPhone Duo.",
+        tags: ["Design", "Guidelines"],
+      },
+      {
+        id: "s5",
+        title: "Linear Docs",
+        url: "https://linear.app/docs",
+        description: "Product documentation presented through Linear’s focused and highly refined interface system.",
+        tags: ["Design", "Documentation"],
+      },
+      {
+        id: "s6",
+        title: "Google Design",
+        url: "https://design.google/",
+        description: "Stories, resources, and ideas from designers working across Google products and platforms.",
+        tags: ["Design", "Inspiration"],
+      },
+    ];
+    
+    const $ = (selector) => document.querySelector(selector);
+    const elements = {
+      add: $("#addBtn"),
+      archive: $("#archiveBtn"),
+      cancel: $("#cancelBtn"),
+      close: $("#closeBtn"),
+      dialog: $("#dialog"),
+      editId: $("#editId"),
+      export: $("#exportBtn"),
+      filters: $("#filters"),
+      form: $("#form"),
+      home: $("#homeNavBtn"),
+      import: $("#importBtn"),
+      importFile: $("#importFile"),
+      list: $("#list"),
+      menu: $("#navMoreMenu"),
+      menuTrigger: $("#navMoreBtn"),
+      modalTitle: $("#modalTitle"),
+      search: $("#search"),
+      searchClose: $("#searchClose"),
+      searchLayer: $("#searchPanel"),
+      searchTrigger: $("#searchBtn"),
+      theme: $("#themeBtn"),
+      toast: $("#toast"),
+      viewTitle: $("#viewTitle"),
+    };
+    
+    let bookmarks = loadBookmarks();
+    let activeTags = new Set();
+    let searchQuery = "";
+    let showingArchive = false;
+    let openItemMenuId = null;
+    let currentTheme = localStorage.getItem(THEME_KEY) === "dark" ? "dark" : "light";
+    let toastTimer;
+    
+    /* Data */
+    function normalizeUrl(value) {
+      const input = String(value || "").trim();
+      if (!input) return "";
+
+      try {
+        const url = new URL(/^https?:\/\//i.test(input) ? input : `https://${input}`);
+        return /^https?:$/.test(url.protocol) ? url.href : "";
+      } catch {
+        return "";
+      }
+    }
+
+    function normalizeBookmark(bookmark) {
+      if (!bookmark || typeof bookmark !== "object") return null;
+
+      const title = String(bookmark.title || "").trim();
+      const url = normalizeUrl(bookmark.url);
+      if (!title || !url) return null;
+
+      return {
+        id: String(bookmark.id || crypto.randomUUID()),
+        title,
+        url,
+        description: String(bookmark.description || "").trim(),
+        tags: Array.isArray(bookmark.tags)
+          ? [...new Set(bookmark.tags.map(String).map((tag) => tag.trim()).filter(Boolean))]
+          : [],
+        archived: Boolean(bookmark.archived),
+      };
+    }
+    
+    function loadBookmarks() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        const source = Array.isArray(stored) ? stored : sampleBookmarks;
+        return source.map(normalizeBookmark).filter(Boolean);
+      } catch {
+        return sampleBookmarks.map(normalizeBookmark).filter(Boolean);
+      }
+    }
+    
+    function saveBookmarks() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(bookmarks));
+    }
+    
+    function bookmarksInView() {
+      return bookmarks.filter((bookmark) => bookmark.archived === showingArchive);
+    }
+    
+    function visibleBookmarks() {
+      const normalizedQuery = searchQuery.trim().toLowerCase();
+    
+      return bookmarksInView().filter((bookmark) => {
+        const matchesTags =
+          !activeTags.size || [...activeTags].every((tag) => bookmark.tags.includes(tag));
+        const searchableText = [
+          bookmark.title,
+          bookmark.url,
+          bookmark.description,
+          ...bookmark.tags,
+        ]
+          .join(" ")
+          .toLowerCase();
+        return matchesTags && (!normalizedQuery || searchableText.includes(normalizedQuery));
+      });
+    }
+    
+    function tagsWithCounts() {
+      const counts = new Map();
+      bookmarksInView().forEach((bookmark) => {
+        bookmark.tags.forEach((tag) => counts.set(tag, (counts.get(tag) || 0) + 1));
+      });
+    
+      return [...counts.entries()].sort(
+        ([tagA, countA], [tagB, countB]) => countB - countA || tagA.localeCompare(tagB, "zh-CN"),
+      );
+    }
+    
+    /* Rendering */
+    function escapeHtml(value = "") {
+      return String(value).replace(
+        /[&<>"']/g,
+        (character) =>
+          ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[
+            character
+          ],
+      );
+    }
+    
+    function faviconUrl(url) {
+      try {
+        const parsedUrl = new URL(url);
+        return /^https?:$/.test(parsedUrl.protocol) ? `${parsedUrl.origin}/favicon.ico` : "";
+      } catch {
+        return "";
+      }
+    }
+    
+    function renderFilters() {
+      const currentBookmarks = bookmarksInView();
+      const allChip = `
+        <button class="chip ${activeTags.size ? "" : "active"}" data-all
+          aria-pressed="${!activeTags.size}">
+          All <span class="chip-count">${currentBookmarks.length}</span>
+        </button>`;
+    
+      const tagChips = tagsWithCounts()
+        .map(
+          ([tag, count]) => `
+            <button class="chip ${activeTags.has(tag) ? "active" : ""}"
+              data-tag="${escapeHtml(tag)}" aria-pressed="${activeTags.has(tag)}">
+              ${escapeHtml(tag)} <span class="chip-count">${count}</span>
+            </button>`,
+        )
+        .join("");
+    
+      elements.filters.innerHTML = allChip + tagChips;
+    }
+    
+    function renderItem(bookmark) {
+      const favicon = faviconUrl(bookmark.url);
+      const menuIsOpen = openItemMenuId === bookmark.id;
+      const safeId = escapeHtml(bookmark.id);
+    
+      return `
+        <article class="item">
+          <div class="site-avatar" aria-hidden="true">
+            <span class="material-symbols-rounded">language</span>
+            ${
+              favicon
+            ? `<img src="${escapeHtml(favicon)}" alt="" onerror="this.remove()">`
+                : ""
+            }
+          </div>
+          <div class="item-actions">
+        <button class="menu-trigger" data-menu="${safeId}" aria-label="More actions"
+              aria-expanded="${menuIsOpen}">
+              <span class="material-symbols-rounded" aria-hidden="true">more_horiz</span>
+            </button>
+          </div>
+          ${menuIsOpen ? renderItemMenu(bookmark) : ""}
+          <div class="item-body">
+            <h2><a href="${escapeHtml(bookmark.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(bookmark.title)}</a></h2>
+            <p class="description">${escapeHtml(bookmark.description || "A website worth visiting again.")}</p>
+          </div>
+        </article>`;
+    }
+    
+    function renderItemMenu(bookmark) {
+      const safeId = escapeHtml(bookmark.id);
+      return `
+        <div class="item-menu">
+          <button data-action="edit" data-id="${safeId}">Edit</button>
+          <button data-action="archive" data-id="${safeId}">
+            ${bookmark.archived ? "Unarchive" : "Archive"}
+          </button>
+          <div class="separator"></div>
+          <button class="danger" data-action="delete" data-id="${safeId}">Delete</button>
+        </div>`;
+    }
+    
+    function render() {
+      elements.viewTitle.textContent = showingArchive ? "Archived Bookmarks" : "Bookmarks";
+      elements.archive.setAttribute("aria-pressed", String(showingArchive));
+      elements.home.setAttribute("aria-pressed", String(!showingArchive));
+      renderFilters();
+    
+      const visible = visibleBookmarks();
+      elements.list.innerHTML = visible.length
+        ? visible.map(renderItem).join("")
+        : `<div class="empty">${
+            showingArchive ? "No archived bookmarks yet" : "No bookmarks match your filters"
+          }</div>`;
+      updateFilterDivider();
+    }
+    
+    /* Forms and notifications */
+    function openForm(bookmark) {
+      elements.form.reset();
+      $("#url").setCustomValidity("");
+      elements.editId.value = bookmark?.id || "";
+      elements.modalTitle.textContent = bookmark ? "Edit bookmark" : "Add bookmark";
+    
+      if (bookmark) {
+        $("#url").value = bookmark.url;
+        $("#title").value = bookmark.title;
+        $("#description").value = bookmark.description;
+        $("#tags").value = bookmark.tags.join(", ");
+      }
+    
+      elements.dialog.showModal();
+      setTimeout(() => $("#url").focus(), 0);
+    }
+    
+    function showNotice(message) {
+      clearTimeout(toastTimer);
+      elements.toast.textContent = message;
+      elements.toast.classList.add("show");
+      toastTimer = setTimeout(() => elements.toast.classList.remove("show"), 1700);
+    }
+    
+    /* Search and navigation */
+    function openSearch() {
+      elements.searchLayer.classList.add("open");
+      elements.searchTrigger.setAttribute("aria-expanded", "true");
+      setTimeout(() => elements.search.focus(), 0);
+    }
+    
+    function closeSearch() {
+      elements.searchLayer.classList.remove("open");
+      elements.searchTrigger.setAttribute("aria-expanded", "false");
+    }
+    
+    function closePanelMenu() {
+      elements.menu.hidden = true;
+      elements.menuTrigger.setAttribute("aria-expanded", "false");
+    }
+    
+    function goHome() {
+      showingArchive = false;
+      activeTags.clear();
+      searchQuery = "";
+      openItemMenuId = null;
+      elements.search.value = "";
+      elements.list.scrollTop = 0;
+      render();
+    }
+    
+    /* Import and backup */
+    function exportBackup() {
+      if (!confirm("Download a JSON backup of your bookmarks?")) return;
+    
+      const backup = {
+        format: "found-bookmarks",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        items: bookmarks,
+      };
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `bookmarks-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 500);
+      showNotice("JSON backup downloaded");
+    }
+    
+    async function importBackup(file) {
+      try {
+        const parsed = JSON.parse(await file.text());
+        const incoming = Array.isArray(parsed) ? parsed : parsed.items;
+      const normalized = Array.isArray(incoming)
+        ? incoming.map(normalizeBookmark).filter(Boolean)
+        : [];
+      const isValid = Array.isArray(incoming) && normalized.length === incoming.length;
+    
+        if (!isValid) throw new Error("Invalid backup");
+        if (!confirm(`Replace current data with ${incoming.length} bookmarks from this backup?`)) return;
+    
+      const seenIds = new Set();
+      bookmarks = normalized.map((item) => {
+        if (seenIds.has(item.id)) item.id = crypto.randomUUID();
+        seenIds.add(item.id);
+        return item;
+      });
+      activeTags.clear();
+      searchQuery = "";
+      elements.search.value = "";
+        saveBookmarks();
+        render();
+        showNotice("Data restored");
+      } catch {
+        alert("This file could not be read. Please choose a JSON backup exported from Bookmarks.");
+      }
+    }
+    
+    /* Theme */
+    function applyTheme(theme) {
+      const isDark = theme === "dark";
+      document.documentElement.dataset.theme = theme;
+      elements.theme.setAttribute("aria-pressed", String(isDark));
+      elements.theme.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+      elements.theme.querySelector(".material-symbols-rounded").textContent = isDark
+        ? "light_mode"
+        : "dark_mode";
+    }
+    
+    function updateFilterDivider() {
+      elements.filters.classList.toggle("list-scrolled", elements.list.scrollTop > 0);
+    }
+    
+    /* Events */
+    elements.filters.addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (!button) return;
+
+      if (button.hasAttribute("data-all")) {
+        activeTags.clear();
+      } else {
+        const selectedTag = button.dataset.tag;
+        const isAlreadySelected = activeTags.has(selectedTag);
+        activeTags.clear();
+        if (!isAlreadySelected) activeTags.add(selectedTag);
+      }
+      render();
+    });
+    
+    elements.list.addEventListener("click", (event) => {
+      const menuTrigger = event.target.closest("[data-menu]");
+      const action = event.target.closest("[data-action]");
+    
+      if (menuTrigger) {
+        openItemMenuId = openItemMenuId === menuTrigger.dataset.menu ? null : menuTrigger.dataset.menu;
+        render();
+        return;
+      }
+      if (!action) return;
+    
+      const bookmark = bookmarks.find((item) => item.id === action.dataset.id);
+      openItemMenuId = null;
+      if (!bookmark) return;
+    
+      if (action.dataset.action === "edit") {
+        render();
+        openForm(bookmark);
+        return;
+      }
+      if (action.dataset.action === "archive") {
+        bookmark.archived = !bookmark.archived;
+        saveBookmarks();
+        render();
+        showNotice(bookmark.archived ? "Archived" : "Moved back to bookmarks");
+        return;
+      }
+      if (action.dataset.action === "delete" && confirm("Delete this bookmark?")) {
+        bookmarks = bookmarks.filter((item) => item.id !== bookmark.id);
+        saveBookmarks();
+        render();
+        showNotice("Deleted");
+      }
+    });
+    
+    elements.list.addEventListener("mouseout", (event) => {
+      const item = event.target.closest(".item");
+      if (!item || item.contains(event.relatedTarget) || !openItemMenuId) return;
+      if (item.querySelector("[data-menu]")?.dataset.menu === openItemMenuId) {
+        openItemMenuId = null;
+        render();
+      }
+    });
+    
+    elements.form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!elements.form.checkValidity()) {
+        elements.form.reportValidity();
+        return;
+      }
+
+      const urlInput = $("#url");
+      const url = normalizeUrl(urlInput.value);
+      if (!url) {
+        urlInput.setCustomValidity("Enter a valid website address.");
+        urlInput.reportValidity();
+        return;
+      }
+      urlInput.setCustomValidity("");
+    
+      const existing = bookmarks.find((item) => item.id === elements.editId.value);
+      const bookmark = {
+        id: elements.editId.value || crypto.randomUUID(),
+        url,
+        title: $("#title").value.trim(),
+        description: $("#description").value.trim(),
+        tags: [
+          ...new Set(
+            $("#tags")
+              .value.split(/[,\uFF0C]/)
+              .map((tag) => tag.trim())
+              .filter(Boolean),
+          ),
+        ],
+        archived: existing?.archived || false,
+      };
+      const index = bookmarks.findIndex((item) => item.id === bookmark.id);
+    
+      if (index >= 0) bookmarks.splice(index, 1, bookmark);
+      else bookmarks.unshift(bookmark);
+    
+      saveBookmarks();
+      elements.dialog.close();
+      render();
+      showNotice(index >= 0 ? "Updated" : "Added");
+    });
+    
+    elements.add.addEventListener("click", () => openForm());
+    $("#url").addEventListener("input", (event) => event.target.setCustomValidity(""));
+    elements.home.addEventListener("click", () => { closePanelMenu(); goHome(); });
+    elements.archive.addEventListener("click", () => {
+      closePanelMenu();
+      showingArchive = !showingArchive;
+      activeTags.clear();
+      openItemMenuId = null;
+      elements.list.scrollTop = 0;
+      render();
+    });
+    elements.searchTrigger.addEventListener("click", () => { closePanelMenu(); openSearch(); });
+    elements.searchClose.addEventListener("click", closeSearch);
+    elements.searchLayer.addEventListener("click", (event) => {
+      if (event.target === elements.searchLayer) closeSearch();
+    });
+    elements.search.addEventListener("input", (event) => {
+      searchQuery = event.target.value;
+      render();
+    });
+    $(".suggestions").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-suggest]");
+      if (!button) return;
+      elements.search.value = button.dataset.suggest;
+      searchQuery = button.dataset.suggest;
+      render();
+      closeSearch();
+    });
+    
+    elements.menuTrigger.addEventListener("click", () => {
+      const opening = elements.menu.hidden;
+      elements.menu.hidden = !opening;
+      elements.menuTrigger.setAttribute("aria-expanded", String(opening));
+    });
+    
+    elements.export.addEventListener("click", () => { closePanelMenu(); exportBackup(); });
+    elements.import.addEventListener("click", () => { closePanelMenu(); elements.importFile.click(); });
+    elements.importFile.addEventListener("change", (event) => {
+      if (event.target.files[0]) importBackup(event.target.files[0]);
+      event.target.value = "";
+    });
+    
+    elements.close.addEventListener("click", () => elements.dialog.close());
+    elements.cancel.addEventListener("click", () => elements.dialog.close());
+    elements.dialog.addEventListener("click", (event) => {
+      if (event.target === elements.dialog) elements.dialog.close();
+    });
+    elements.theme.addEventListener("click", () => {
+      currentTheme = currentTheme === "dark" ? "light" : "dark";
+      localStorage.setItem(THEME_KEY, currentTheme);
+      applyTheme(currentTheme);
+    });
+    
+    elements.list.addEventListener("scroll", updateFilterDivider, { passive: true });
+    
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest("#navMoreMenu") && !event.target.closest("#navMoreBtn")) {
+        closePanelMenu();
+      }
+      if (openItemMenuId && !event.target.closest(".item-menu") && !event.target.closest(".menu-trigger")) {
+        openItemMenuId = null;
+        render();
+      }
+    });
+    
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      closeSearch();
+      closePanelMenu();
+      if (openItemMenuId) {
+        openItemMenuId = null;
+        render();
+      }
+    });
+    
+    applyTheme(currentTheme);
+    render();
+  </script>
+</body></html>
