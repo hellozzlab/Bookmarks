@@ -406,7 +406,7 @@
       inset: 0;
       z-index: 50;
       display: none;
-      padding: 96px 32px 32px;
+      padding: 96px 56px;
       background: var(--overlay);
       backdrop-filter: blur(4px);
     }
@@ -414,8 +414,11 @@
     .search-layer.open { display: block; }
     
     .search-panel {
-      width: min(560px, 100%);
+      width: min(576px, 100%);
+      max-height: calc(100dvh - 192px);
       margin: auto;
+      display: flex;
+      flex-direction: column;
       overflow: hidden;
       border: 1px solid var(--border);
       border-radius: 18px;
@@ -425,11 +428,65 @@
     
     .search-row {
       height: 60px;
+      flex: none;
       padding: 0 18px;
       display: flex;
       align-items: center;
       gap: 12px;
-      border-bottom: 1px solid var(--border);
+    }
+
+    .search-results:not(:empty) {
+      min-height: 0;
+      flex: 1;
+      padding: 8px;
+      overflow-y: auto;
+      border-top: 1px solid var(--border);
+    }
+
+    .search-result {
+      min-height: 58px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: 32px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      border-radius: 12px;
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .search-result:hover { background: var(--canvas); }
+    .search-result-copy { min-width: 0; }
+    .search-result-title {
+      width: fit-content;
+      max-width: 100%;
+      overflow: hidden;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.35;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .search-result-title:hover {
+      text-decoration: underline;
+      text-decoration-thickness: 1.5px;
+    }
+    .search-result-description {
+      margin-top: 3px;
+      display: -webkit-box;
+      overflow: hidden;
+      color: var(--secondary-text);
+      font-size: 12px;
+      line-height: 1.4;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .search-empty {
+      padding: 28px 18px;
+      color: var(--tertiary-text);
+      text-align: center;
+      font-size: 13px;
     }
     
     .search-row > .material-symbols-rounded {
@@ -472,23 +529,6 @@
     .close:hover { background: var(--surface-hover); color: var(--primary); }
     .search-close .material-symbols-rounded,
     .close .material-symbols-rounded { font-size: 18px; }
-    
-    .suggestions { padding: 16px 18px 18px; }
-    .suggestions-label { display: block; margin-bottom: 10px; color: var(--tertiary-text); font-size: 12px; }
-    
-    .suggestions button {
-      height: 28px;
-      margin: 0 6px 6px 0;
-      padding: 0 12px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--surface);
-      color: var(--secondary-text);
-      cursor: pointer;
-      font-size: 14px;
-    }
-    
-    .suggestions button:hover { background: var(--surface-hover); color: var(--primary); }
     
     /* Add and edit dialog */
     dialog {
@@ -606,7 +646,6 @@
     .toast.show { opacity: 1; transform: translate(-50%, 0); }
     
     @media (max-width: 650px) {
-      .search-layer { padding: 84px 16px 16px; }
       .search-row input,
       .field input,
       .field textarea { font-size: 16px; }
@@ -632,13 +671,7 @@
           <span class="material-symbols-rounded" aria-hidden="true">close</span>
         </button>
       </div>
-      <div class="suggestions">
-        <span class="suggestions-label">Suggested</span>
-        <button data-suggest="Design">Design</button>
-        <button data-suggest="Inspiration">Inspiration</button>
-        <button data-suggest="Magazine">Magazine</button>
-        <button data-suggest="Website">Website</button>
-      </div>
+      <div class="search-results" id="searchResults"></div>
     </div>
   </div>
 
@@ -778,6 +811,7 @@
       search: $("#search"),
       searchClose: $("#searchClose"),
       searchLayer: $("#searchPanel"),
+      searchResults: $("#searchResults"),
       searchTrigger: $("#searchBtn"),
       theme: $("#themeBtn"),
       toast: $("#toast"),
@@ -843,21 +877,21 @@
     }
     
     function visibleBookmarks() {
-      const normalizedQuery = searchQuery.trim().toLowerCase();
-    
       return bookmarksInView().filter((bookmark) => {
-        const matchesTags =
-          !activeTags.size || [...activeTags].every((tag) => bookmark.tags.includes(tag));
-        const searchableText = [
-          bookmark.title,
-          bookmark.url,
-          bookmark.description,
-          ...bookmark.tags,
-        ]
-          .join(" ")
-          .toLowerCase();
-        return matchesTags && (!normalizedQuery || searchableText.includes(normalizedQuery));
+        return !activeTags.size || [...activeTags].every((tag) => bookmark.tags.includes(tag));
       });
+    }
+
+    function searchMatches() {
+      const normalizedQuery = searchQuery.trim().toLowerCase();
+      if (!normalizedQuery) return [];
+
+      return bookmarksInView().filter((bookmark) =>
+        [bookmark.title, bookmark.url, bookmark.description, ...bookmark.tags]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedQuery),
+      );
     }
     
     function tagsWithCounts() {
@@ -953,6 +987,43 @@
           <button class="danger" data-action="delete" data-id="${safeId}">Delete</button>
         </div>`;
     }
+
+    function renderSearchResults() {
+      const results = searchMatches();
+      if (!searchQuery.trim()) {
+        elements.searchResults.innerHTML = "";
+        return;
+      }
+
+      elements.searchResults.innerHTML = results.length
+        ? results
+            .map((bookmark) => {
+              const favicon = faviconUrl(bookmark.url);
+              return `
+                <a class="search-result" href="${escapeHtml(bookmark.url)}" target="_blank" rel="noopener noreferrer">
+                  <div class="site-avatar" aria-hidden="true">
+                    <span class="material-symbols-rounded">language</span>
+                    ${favicon ? `<img src="${escapeHtml(favicon)}" alt="" onerror="this.remove()">` : ""}
+                  </div>
+                  <div class="search-result-copy">
+                    <div class="search-result-title">${escapeHtml(bookmark.title)}</div>
+                    <div class="search-result-description">${escapeHtml(bookmark.description || bookmark.url)}</div>
+                  </div>
+                </a>`;
+            })
+            .join("")
+        : '<div class="search-empty">No matching bookmarks</div>';
+    }
+
+    function closeItemMenu() {
+      elements.list.querySelector(".item-menu")?.remove();
+      const expandedTrigger = elements.list.querySelector(
+        '.menu-trigger[aria-expanded="true"]',
+      );
+      expandedTrigger?.setAttribute("aria-expanded", "false");
+      expandedTrigger?.blur();
+      openItemMenuId = null;
+    }
     
     function render() {
       elements.viewTitle.textContent = showingArchive ? "Archived Bookmarks" : "Bookmarks";
@@ -998,12 +1069,16 @@
     function openSearch() {
       elements.searchLayer.classList.add("open");
       elements.searchTrigger.setAttribute("aria-expanded", "true");
+      renderSearchResults();
       setTimeout(() => elements.search.focus(), 0);
     }
     
     function closeSearch() {
       elements.searchLayer.classList.remove("open");
       elements.searchTrigger.setAttribute("aria-expanded", "false");
+      searchQuery = "";
+      elements.search.value = "";
+      elements.searchResults.innerHTML = "";
     }
     
     function closePanelMenu() {
@@ -1103,20 +1178,28 @@
     elements.list.addEventListener("click", (event) => {
       const menuTrigger = event.target.closest("[data-menu]");
       const action = event.target.closest("[data-action]");
-    
+
       if (menuTrigger) {
-        openItemMenuId = openItemMenuId === menuTrigger.dataset.menu ? null : menuTrigger.dataset.menu;
-        render();
+        const itemId = menuTrigger.dataset.menu;
+        const isClosing = openItemMenuId === itemId;
+        closeItemMenu();
+
+        if (!isClosing) {
+          const bookmark = bookmarks.find((item) => item.id === itemId);
+          if (!bookmark) return;
+          menuTrigger.closest(".item").insertAdjacentHTML("beforeend", renderItemMenu(bookmark));
+          menuTrigger.setAttribute("aria-expanded", "true");
+          openItemMenuId = itemId;
+        }
         return;
       }
       if (!action) return;
-    
+
       const bookmark = bookmarks.find((item) => item.id === action.dataset.id);
-      openItemMenuId = null;
       if (!bookmark) return;
-    
+      closeItemMenu();
+
       if (action.dataset.action === "edit") {
-        render();
         openForm(bookmark);
         return;
       }
@@ -1139,8 +1222,7 @@
       const item = event.target.closest(".item");
       if (!item || item.contains(event.relatedTarget) || !openItemMenuId) return;
       if (item.querySelector("[data-menu]")?.dataset.menu === openItemMenuId) {
-        openItemMenuId = null;
-        render();
+        closeItemMenu();
       }
     });
     
@@ -1205,15 +1287,13 @@
     });
     elements.search.addEventListener("input", (event) => {
       searchQuery = event.target.value;
-      render();
+      renderSearchResults();
     });
-    $(".suggestions").addEventListener("click", (event) => {
-      const button = event.target.closest("[data-suggest]");
-      if (!button) return;
-      elements.search.value = button.dataset.suggest;
-      searchQuery = button.dataset.suggest;
-      render();
-      closeSearch();
+    elements.search.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      searchQuery = event.currentTarget.value;
+      renderSearchResults();
     });
     
     elements.menuTrigger.addEventListener("click", () => {
@@ -1247,8 +1327,7 @@
         closePanelMenu();
       }
       if (openItemMenuId && !event.target.closest(".item-menu") && !event.target.closest(".menu-trigger")) {
-        openItemMenuId = null;
-        render();
+        closeItemMenu();
       }
     });
     
@@ -1256,10 +1335,7 @@
       if (event.key !== "Escape") return;
       closeSearch();
       closePanelMenu();
-      if (openItemMenuId) {
-        openItemMenuId = null;
-        render();
-      }
+      if (openItemMenuId) closeItemMenu();
     });
     
     applyTheme(currentTheme);
